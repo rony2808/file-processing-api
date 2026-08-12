@@ -1,0 +1,33 @@
+services:
+  localstack:
+    image: localstack/localstack:3.8
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,dynamodb
+    volumes:
+      - "./localstack/init:/etc/localstack/init/ready.d"
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name file-processing-queue --region eu-central-1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s  
+
+  api:
+    build: ./services/api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  worker:
+    build: ./services/worker
+    env_file:
+      - .env
+    depends_on:
+      localstack:
+        condition: service_healthy

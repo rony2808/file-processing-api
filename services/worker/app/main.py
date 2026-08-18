@@ -1,8 +1,10 @@
-import logging
-import json
-from PIL import Image
 import io
-from .aws import sqs, dynamodb, s3
+import json
+import logging
+
+from PIL import Image
+
+from .aws import dynamodb, s3, sqs
 from .config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -37,7 +39,7 @@ def poll_once(queue_url):
                 QueueUrl=queue_url,
                 ReceiptHandle=message["ReceiptHandle"],
             )
-            continue   
+            continue
         try:
             dynamodb.update_item(
                 TableName=settings.dynamodb_table,
@@ -55,13 +57,15 @@ def poll_once(queue_url):
             s3_response = s3.get_object(Bucket=settings.s3_bucket, Key=source_key)
             image_bytes = s3_response["Body"].read()
             image = Image.open(io.BytesIO(image_bytes))
-            image.thumbnail((256,256))
+            image.thumbnail((256, 256))
             output = io.BytesIO()
             image.save(output, format="JPEG")
             thumbnail_bytes = output.getvalue()
             logger.info("Thumbnail generated: %d bytes", len(thumbnail_bytes))
             thumbnail_key = f"thumbnails/{job_id}.jpg"
-            s3.put_object(Bucket=settings.s3_bucket, Key=thumbnail_key, Body=thumbnail_bytes)
+            s3.put_object(
+                Bucket=settings.s3_bucket, Key=thumbnail_key, Body=thumbnail_bytes
+            )
             dynamodb.update_item(
                 TableName=settings.dynamodb_table,
                 Key={"job_id": {"S": job_id}},
@@ -69,7 +73,7 @@ def poll_once(queue_url):
                 ExpressionAttributeNames={"#s": "status"},
                 ExpressionAttributeValues={
                     ":status": {"S": "done"},
-                    ":tk": {"S":thumbnail_key},
+                    ":tk": {"S": thumbnail_key},
                 },
             )
             logger.info("Job %s done", job_id)
@@ -78,7 +82,7 @@ def poll_once(queue_url):
                 ReceiptHandle=message["ReceiptHandle"],
             )
             logger.info("Message deleted")
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             logger.error("Job %s failed: %s", job_id, error)
             dynamodb.update_item(
                 TableName=settings.dynamodb_table,
@@ -90,6 +94,8 @@ def poll_once(queue_url):
                     ":error": {"S": str(error)},
                 },
             )
+
+
 def main():
     logger.info("Worker started, polling queue...")
     queue_url = sqs.get_queue_url(QueueName=settings.sqs_queue_name)["QueueUrl"]
@@ -100,4 +106,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

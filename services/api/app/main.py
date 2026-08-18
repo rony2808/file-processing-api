@@ -1,8 +1,9 @@
-from flask import Flask, request
-from config import settings
-from aws import s3, dynamodb, sqs
 import json
 import uuid
+
+from aws import dynamodb, s3, sqs
+from config import settings
+from flask import Flask, request
 
 app = Flask(__name__)
 

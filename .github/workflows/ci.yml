@@ -4,41 +4,14 @@ on:
   pull_request:
 jobs:
   test-api:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Retrieve the code
-        uses: actions/checkout@v4
-      - name: Install python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        working-directory: services/api
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-test.txt
-      - name: Run test
-        working-directory: services/api
-        run: python -m pytest
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service_path: services/api
 
   test-worker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Retrieve the code
-        uses: actions/checkout@v4
-      - name: Install python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        working-directory: services/worker
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-test.txt
-      - name: Run test
-        working-directory: services/worker
-        run: python -m pytest
-  
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service_path: services/worker  
   lint: 
     runs-on: ubuntu-latest
     steps:

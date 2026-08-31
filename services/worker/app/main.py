@@ -7,6 +7,11 @@ from PIL import Image
 from .aws import dynamodb, s3, sqs
 from .config import settings
 
+from prometheus_client import Counter, start_http_server
+
+jobs_processed = Counter("jobs_processed_total", "Total images processed successfully")
+jobs_failed = Counter("jobs_failed_total", "Total images that failed processing")
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("worker")
 
@@ -82,6 +87,7 @@ def poll_once(queue_url):
                 ReceiptHandle=message["ReceiptHandle"],
             )
             logger.info("Message deleted")
+            jobs_processed.inc()
         except Exception as error:  # noqa: BLE001
             logger.error("Job %s failed: %s", job_id, error)
             dynamodb.update_item(
@@ -94,12 +100,14 @@ def poll_once(queue_url):
                     ":error": {"S": str(error)},
                 },
             )
+            jobs_failed.inc()
 
 
 def main():
     logger.info("Worker started, polling queue...")
     queue_url = sqs.get_queue_url(QueueName=settings.sqs_queue_name)["QueueUrl"]
     logger.info("Resolved queue URL: %s", queue_url)
+    start_http_server(8001)
     while True:
         poll_once(queue_url)
 

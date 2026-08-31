@@ -5,8 +5,10 @@ from aws import dynamodb, s3, sqs
 from config import settings
 from flask import Flask, request
 
-app = Flask(__name__)
+from prometheus_flask_exporter import PrometheusMetrics
 
+app = Flask(__name__)
+metrics = PrometheusMetrics(app)
 
 @app.get("/health")
 def health():

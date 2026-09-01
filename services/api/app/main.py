@@ -4,11 +4,11 @@ import uuid
 from aws import dynamodb, s3, sqs
 from config import settings
 from flask import Flask, request
-
 from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
+
 
 @app.get("/health")
 def health():

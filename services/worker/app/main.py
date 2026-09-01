@@ -3,11 +3,10 @@ import json
 import logging
 
 from PIL import Image
+from prometheus_client import Counter, start_http_server
 
 from .aws import dynamodb, s3, sqs
 from .config import settings
-
-from prometheus_client import Counter, start_http_server
 
 jobs_processed = Counter("jobs_processed_total", "Total images processed successfully")
 jobs_failed = Counter("jobs_failed_total", "Total images that failed processing")

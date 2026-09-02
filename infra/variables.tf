@@ -21,3 +21,8 @@ variable "docker_username" {
   type        = string
   default     = "ronk1234"
 }
+
+variable "alert_email" {
+  description = "Email address to receive CloudWatch alarm notifications"
+  type        = string
+}

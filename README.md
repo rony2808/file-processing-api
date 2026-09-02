@@ -57,7 +57,7 @@ The system is composed of two decoupled services communicating through AWS-manag
 | Containerization    | Docker, Docker Compose                                     |
 | Infrastructure      | Terraform (Infrastructure as Code), AWS EC2, VPC, IAM     |
 | CI/CD               | GitHub Actions                                             |
-| Observability       | Prometheus, Grafana                                        |
+| Observability       | Prometheus, Grafana, AWS CloudWatch, SNS                  |
 | Local development   | LocalStack (local AWS emulation)                           |
 
 ---
@@ -71,7 +71,7 @@ The system is composed of two decoupled services communicating through AWS-manag
 - **Automated testing** — unit tests for both services using mocking, so tests run anywhere without real AWS dependencies.
 - **Full CI/CD pipeline** — every push runs tests and linting for both services in parallel; Docker images are built and published only when all checks pass.
 - **Infrastructure as Code** — the entire AWS environment (network, IAM, compute, data stores) is provisioned reproducibly with Terraform, following least-privilege IAM principles.
-- **Observability** — business and HTTP metrics exposed via Prometheus and visualized in Grafana dashboards.
+- **Observability** — application metrics (throughput, latency, failures) via Prometheus and Grafana, plus infrastructure alerting via AWS CloudWatch and SNS.
 
 ---
 
@@ -187,13 +187,28 @@ Terraform state is stored remotely in S3 with state locking enabled.
 
 ## Observability
 
-Both services are instrumented for metrics:
+The project uses two complementary layers of observability, each suited to what
+it does best:
+
+**Application metrics — Prometheus & Grafana**
 
 - **API** — HTTP request metrics (rate, latency, status codes) via `prometheus-flask-exporter`.
 - **Worker** — custom business metrics (`jobs_processed_total`, `jobs_failed_total`) via `prometheus_client`, exposed on a dedicated metrics endpoint.
 
 Prometheus scrapes both services, and Grafana visualizes the data — processing
 throughput, failure rate, API traffic, and p95 latency.
+
+**Infrastructure alerting — CloudWatch & SNS**
+
+A CloudWatch alarm watches the SQS queue backlog
+(`ApproximateNumberOfMessagesVisible`). If unprocessed messages pile up beyond a
+threshold — a sign the worker can't keep up — the alarm fires and notifies via an
+SNS email subscription. This is defined entirely in Terraform alongside the rest
+of the infrastructure.
+
+This split reflects a deliberate design choice: Prometheus/Grafana for
+**application-level** metrics, CloudWatch/SNS for **infrastructure-level**
+monitoring and alerting.
 
 ---
 

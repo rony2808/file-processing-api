@@ -163,6 +163,18 @@ resource "aws_iam_role_policy" "ec2" {
           "dynamodb:UpdateItem"
         ]
         Resource = aws_dynamodb_table.jobs.arn
+      },
+
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = [
+          "${aws_cloudwatch_log_group.api.arn}:*",
+          "${aws_cloudwatch_log_group.worker.arn}:*"
+        ]
       }
     ]
   })
@@ -202,6 +214,7 @@ resource "aws_instance" "app" {
     s3_bucket       = aws_s3_bucket.images.bucket
     sqs_queue_name  = aws_sqs_queue.main.name
     dynamodb_table  = aws_dynamodb_table.jobs.name
+    project_name    = var.project_name
   })
 
   tags = {

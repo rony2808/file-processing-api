@@ -71,7 +71,7 @@ The system is composed of two decoupled services communicating through AWS-manag
 - **Automated testing** — unit tests for both services using mocking, so tests run anywhere without real AWS dependencies.
 - **Full CI/CD pipeline** — every push runs tests and linting for both services in parallel; Docker images are built and published only when all checks pass.
 - **Infrastructure as Code** — the entire AWS environment (network, IAM, compute, data stores) is provisioned reproducibly with Terraform, following least-privilege IAM principles.
-- **Observability** — application metrics (throughput, latency, failures) via Prometheus and Grafana, plus infrastructure alerting via AWS CloudWatch and SNS.
+- **Observability** — application metrics (throughput, latency, failures) via Prometheus and Grafana, plus infrastructure alerting and centralized logging via AWS CloudWatch and SNS.
 
 ---
 
@@ -198,17 +198,16 @@ it does best:
 Prometheus scrapes both services, and Grafana visualizes the data — processing
 throughput, failure rate, API traffic, and p95 latency.
 
-**Infrastructure alerting — CloudWatch & SNS**
+**Infrastructure monitoring & logs — CloudWatch & SNS**
 
-A CloudWatch alarm watches the SQS queue backlog
-(`ApproximateNumberOfMessagesVisible`). If unprocessed messages pile up beyond a
-threshold — a sign the worker can't keep up — the alarm fires and notifies via an
-SNS email subscription. This is defined entirely in Terraform alongside the rest
-of the infrastructure.
+- **Alarms** — CloudWatch alarms watch key infrastructure signals: the SQS queue backlog (`ApproximateNumberOfMessagesVisible`, a sign the worker can't keep up) and EC2 CPU utilization. When a threshold is breached, the alarm fires and notifies via an SNS email subscription.
+- **Centralized logs** — both containers ship their logs to CloudWatch Logs via the Docker `awslogs` driver, into per-service log groups with a retention policy. Logs are searchable from the AWS console without connecting to the instance, and survive even if it's replaced.
+
+All of this is defined in Terraform alongside the rest of the infrastructure, following least-privilege IAM.
 
 This split reflects a deliberate design choice: Prometheus/Grafana for
 **application-level** metrics, CloudWatch/SNS for **infrastructure-level**
-monitoring and alerting.
+monitoring, alerting, and log aggregation.
 
 ---
 

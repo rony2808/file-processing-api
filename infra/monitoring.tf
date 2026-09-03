@@ -18,6 +18,27 @@ resource "aws_cloudwatch_metric_alarm" "sqs_backlog" {
 }
 
 
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name        = "${var.project_name}-ec2-cpu-high"
+  alarm_description = "Alert when the CPU is greater than 80 percent"
+
+  namespace   = "AWS/EC2"
+  metric_name = "CPUUtilization"
+
+  dimensions = {
+    InstanceId = aws_instance.app.id
+  }
+
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+}
+
+
 resource "aws_sns_topic" "alerts" {
   name = "${var.project_name}-alerts"
 }
